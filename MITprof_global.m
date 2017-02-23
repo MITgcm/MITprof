@@ -35,7 +35,14 @@ if ~isfield(myenv,'MITprof_dir');
     if isdir('GRID/'); gridDir='GRID/'; end;
     if isdir('nctiles_grid/'); gridDir='nctiles_grid/'; end;
 
-    if isempty(gridDir); error('could not find grid'); end;
+    if isempty(gridDir); 
+     fprintf('\n please indicate the ECCO v4 grid directory (e.g., ''nctiles_grid/'') \n\n');
+     fprintf('   It can be obtained as follows: \n');
+     fprintf('   wget --recursive ftp://mit.ecco-group.org/ecco_for_las/version_4/release2/nctiles_grid/ .\n');
+     fprintf('   mv mit.ecco-group.org/ecco_for_las/version_4/release2/nctiles_grid/ . \n\n');
+     gridDir=input('');
+    end;
+
     addpath(gridDir);
     fil=which('GRID.0001.nc');
     if isempty(fil); fil=which('XC.meta'); end;
@@ -57,7 +64,7 @@ if ~isfield(myenv,'MITprof_dir');
     if isempty(fil);
      fprintf('\n please indicate the climatologies directory (e.g., ''gcmfaces_climatologies/'') \n\n');
      fprintf('   It can be obtained as follows: \n');
-     fprintf('   wget --recursive ftp://mit.ecco-group.org/gforget/OCCAetcONv4GRID .\n\n');
+     fprintf('   wget --recursive ftp://mit.ecco-group.org/gforget/OCCAetcONv4GRID .\n');
      fprintf('   mv mit.ecco-group.org/gforget/OCCAetcONv4GRID gcmfaces_climatologies \n\n');
      climDir=input('');
     end;
