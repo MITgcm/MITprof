@@ -55,7 +55,7 @@ if isfield(profileCur,'DATA_MODE')&isfield(dataset,'greyList');
             if (time0<timeP);
                 for ii=2:length(dataset.var_out);
                     tmp1=dataset.var_out{ii};
-                    eval(['profileCur.' tmp1 '_test(:)=10*profileCur.' tmp1 '_test(:)+4;]);']);
+                    eval(['profileCur.' tmp1 '_test(:)=10*profileCur.' tmp1 '_test(:)+4;']);
                 end;
             end;
         end;
