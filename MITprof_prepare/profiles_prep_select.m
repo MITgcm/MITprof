@@ -13,6 +13,7 @@ function [dataset]=profiles_prep_select(datasetname,subset,varargin);
 %
 %typical calling sequence :
 %
+%MITprof_global;
 %YY=[1992:2016];
 %BB={'atlantic','indian','pacific'};
 %for bb=1:3;
@@ -91,7 +92,7 @@ switch datasetname
         %Argo profiles:
         %--------------
 
-        dir0=[pwd '/eccov4_baseline2_prepare/argo/'];%RD16
+        dir0=[pwd filesep];
         dataset.dirIn=[dir0 'ftp.ifremer.fr/ifremer/argo/geo/' subset{1} '_ocean/'];
         %year range
         if length(subset)==2; subset{3}=subset{2}; end;
