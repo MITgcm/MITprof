@@ -30,36 +30,39 @@ if nargin==2,
 end
 
 %set global variables
-gcmfaces_global;
+MITprof_global;
 global mytri MYBASININDEX atlas sigma;
 
 % set directories:
+fprintf('\n');
 
 %%%%%% part 1 : default usage %%%%%%%
 
 if loadFromMat==0,
 
     %default directory location
-    %dirGrid=myenv.MITprof_griddir;
+    dirGrid=myenv.MITprof_griddir;
     dirClim=myenv.MITprof_climdir;
     
     % read grid :
+    fprintf(['loading grid from ' dirGrid ' ...\n']);
     mygrid=[];
-    dir0=[pwd filesep '../GRID/']; test0=~isempty(dir(dir0));
-    dir1=[pwd filesep '../nctiles_grid/']; test1=~isempty(dir(dir1));
-    if test0; grid_load(dir0,5,'compact');
-    elseif test0; grid_load(dir1,5,'nctiles');
-    else; grid_load;
+    if ~isempty(dir([dirGrid filesep 'GRID.0001.nc'])); grid_load(dirGrid,5,'nctiles');
+    elseif ~isempty(dir([dirGrid filesep 'XC.data'])); grid_load(dirGrid,5,'compact');
+    else; error(['could not find grid files in ' dirGrid]);
     end;
     gcmfaces_bindata;
-    disp(['grid was loaded from ' mygrid.dirGrid]);
     mygrid=rmfield(mygrid,{'XG','YG','RAC','RAZ','DXC','DYC','DXG','DYG'});
     mygrid=rmfield(mygrid,{'hFacC','hFacW','hFacS','Depth','AngleCS','AngleSN'});
     mygrid=rmfield(mygrid,{'hFacCsurf','mskW','mskS','DRC','DRF','RF'});
     MYBASININDEX=convert2array(read_bin('v4_basin.bin',1,0));
+    disp('... grid has been loaded');
     
     % read T/S Atlas
-    disp(['load atlas from ' dirClim]);
+    if isempty(dir([dirClim filesep 'T_OWPv1_M_eccollc_90x50.bin']));
+      error(['could not find climatology files in ' dirClim]);
+    end;
+    fprintf(['loading climatologies from ' dirClim ' ...\n']);
     atlas=[];
     fldT=mygrid.mskC; fldT(:)=0; fldS=fldT;
     for tt=1:12;
@@ -67,11 +70,16 @@ if loadFromMat==0,
         fldS(:,:,:,tt)=read_bin('S_OWPv1_M_eccollc_90x50.bin',tt).*mygrid.mskC;
     end;
     atlas.T={convert2array(fldT)};  atlas.S={convert2array(fldS)};
+    disp('... climatologies have been loaded');
     
     % read T/S variance fields
-    disp(['load sigma from ' dirClim]);
+    if isempty(dir([dirClim filesep 'sigma_T_nov2015.bin']));
+      error(['could not find uncertainty files in ' dirClim]);
+    end;
+    fprintf(['loading uncertainties from ' dirClim ' ...\n']);
     sigma.T=read_bin([dirClim 'sigma_T_nov2015.bin']);
     sigma.S=read_bin([dirClim 'sigma_S_nov2015.bin']);
+    disp('... uncertainties have been loaded');
 
     % error variance bounds
     for kk=1:size(sigma.T{1},3);
