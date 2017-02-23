@@ -110,7 +110,7 @@ end;
 %=============================create the file=================================%
 
 % write the netcdf structure
-ncid=nccreate(fileOut,'clobber');
+ncid=nccreateFile(fileOut,'clobber');
 
 aa=sprintf(['The contents of this MITprof file were processed \n' ...
             'using the MITprof matlab toolbox which can be obtained from \n'...
