@@ -1,41 +1,46 @@
 function [profOut]=MITprof_resample(profIn,fldIn,filOut,method);
-%
 %[profOut]=MITPROF_RESAMPLE(profIn,fldIn,filOut,method);
 %
-%     resamples a set of fields (fldIn) to profile 3D locations (profIn)
-%     and output the result to nc file (filOut) and memory (profOut).
-%     using a chosen interpolation method (method).
+%  resamples a set of fields (specified in fldIn) to profile locations
+%  (specified in profIn) and output the result either to memory
+%  (by default) or to a netcdf file (if filOut is specified) based on
+%  on pre-defined interpolation method ('polygons' by default)
 %
-%     profIn (structure) should contain: prof_depth, prof_lon, prof_lat, prof_date
-%     fldIn (structure) should contain: fil, name, long_name, units, tim, 
-%         missing_value, FillValue (for nc output), and fld ([] by default).
-%         If fld is not [] then it is assumed that user already loaded 
-%         the fields from fldIn.fil.
+%     profIn (structure) should contain: prof_depth, prof_lon, prof_lat,
+%         and prof_date (serial date number from datenum.m)
 %
-%     fldIn.tim can be set to
+%     fldIn (structure) should contain: fil, name, and tim (see below
+%         for detail and examples), and optionally
+%         - long_name, units, missing_value, FillValue; if filOut~=''
+%           this information will be used in the netcdf fiel output
+%         - fld ([] by default); if provided then it is assumed that
+%           user has already read fldIn.fil and stored it to fldIn.fld
+%
+%     fldIn.tim must be set to one of the following values:
 %         'const' (for time invariant climatology),
 %         'monclim' (for monthly climatology)
 %         'monser' (for monthly time series)
 %         'monloop' (for cyclic monthly time series)
 %
-%     method can be set to
+%     method ('polygons' by default) can be specified as
 %         'polygons' (linear in space)
 %         'bindata' (nearest neighbor in space)
 %
-% Example: 
-%  grid_load; gcmfaces_global; MITprof_global; addpath matlab/;
-%  profIn=idma_float_plot('4900828');
-%  %
-%  fldIn.fil=fullfile(myenv.MITprof_climdir,filesep,'T_OWPv1_M_eccollc_90x50.bin');
-%  fldIn.name='prof_Towp';
-%  fldIn.long_name='pot. temp. estimate (OCCA-WOA-PHC combination)';
-%  fldIn.units='degree C';
-%  fldIn.tim='monclim';
-%  fldIn.missing_value=-9999.;
-%  fldIn.FillValue=-9999.;
-%  fldIn.fld=[];
-%  %
-%  profOut=MITprof_resample(profIn,fldIn);
+%  Example: (should be revisited)
+%
+%     grid_load; gcmfaces_global; MITprof_global; addpath matlab/;
+%     profIn=idma_float_plot('4900828');
+%     %
+%     fldIn.fil=fullfile(myenv.MITprof_climdir,filesep,'T_OWPv1_M_eccollc_90x50.bin');
+%     fldIn.name='prof_Towp';
+%     fldIn.tim='monclim';
+%     %fldIn.long_name='pot. temp. estimate (OCCA-WOA-PHC combination)';
+%     %fldIn.units='degree C';
+%     %fldIn.missing_value=-9999.;
+%     %fldIn.FillValue=-9999.;
+%     %fldIn.fld=[];
+%     %
+%     profOut=MITprof_resample(profIn,fldIn);
 
 
 gcmfaces_global;
@@ -46,8 +51,12 @@ if doOut; doOutInit=isempty(dir(filOut)); end;
 
 if isempty(who('method')); method='polygons'; end;
 
-%0) check for file types
+%0) check for input types 
+%   test0=1 <-> binary
+%   test1=1 <-> nctiles
+%   test2=1 <-> readily available fldIn.fld
 test0=isfield(fldIn,'fil');
+%
 test1=0;
 if test0;
   test0=~isempty(dir(fldIn.fil));
@@ -56,22 +65,29 @@ if test0;
   fil_nctiles=fullfile(PATH,NAME,NAME);
   test1=~isempty(dir(fil_nc));
 end;
+%
+if ~isfield(fldIn,'fld'); fldIn.fld=[]; end;
 test2=~isempty(fldIn.fld);
 
 %1) deal with time line
 if strcmp(fldIn.tim,'monclim');
-    tim_fld=[-0.5:12.5]; rec_fld=[12 1:12 1];
+    tmp1=[1:13]'; tmp2=ones(13,1)*[1991 1 1 0 0 0]; tmp2(:,2)=tmp1;
+    tim_fld=datenum(tmp2)-datenum(1991,1,1); 
+    tim_fld=1/2*(tim_fld(1:12)+tim_fld(2:13));
+    tim_fld=[tim_fld(12)-365 tim_fld' tim_fld(1)+365]; rec_fld=[12 1:12 1];
+    %
     tmp1=datevec(profIn.prof_date);
     tmp2=datenum([tmp1(:,1) ones(profIn.np,2) zeros(profIn.np,3)]);
     tim_prof=(profIn.prof_date-tmp2);
     tim_prof(tim_prof>365)=365;
-    tim_prof=tim_prof/365*12;%neglecting differences in months length
+    %
     if test2; fldIs3d=(length(size(fldIn.fld{1}))==4); end;
 elseif strcmp(fldIn.tim,'monloop')|strcmp(fldIn.tim,'monser');
     if test1;
       eval(['ncload ' fil_nc ' tim']);
       nt=length(tim);
     elseif ~test2;
+      warning('Here it is assumed that fldIn.fil contains 3D fields');
       %note: 2D case still needs to be treated here ... or via fldIn.is3d ?
       tmp1=dir(fldIn.fil);
       nt=tmp1.bytes/prod(mygrid.ioSize)/length(mygrid.RC)/4;
@@ -150,8 +166,7 @@ for tt=1:length(rec_fld)-1;
         arr2=arr;
       end;
       %now linear in time:
-      k0=floor(tim_prof(ii));
-      a0=tim_prof(ii)-k0;
+      a0=(tim_prof(ii)-tim_fld(tt))/(tim_fld(tt+1)-tim_fld(tt));
       if fldIs3d;
         a0=a0*ones(1,profIn.nr);
         profOut(ii,:)=(1-a0).*arr2(:,:,1)+a0.*arr2(:,:,2);
