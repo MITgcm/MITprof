@@ -40,7 +40,11 @@ listData=unique(listData);
 for iFile=1:length(listData);
     fileData=dir([dirData listData{iFile}]);
     fileData=fileData.name;
-    fprintf(['loading ' varCur ' from ' fileData '\n']);
+    if ~isempty(varSpec);
+        fprintf(['  loading ' varSpec ' from ' fileData '...\n']);
+    else;
+        fprintf(['  loading ' varCur ' from ' fileData '...\n']);
+    end;
     MITprofCur=MITprof_load([dirData fileData]);
 
     if isfield(MITprofCur,'prof_TeccoV4R2')&~isfield(MITprofCur,'prof_Testim');
