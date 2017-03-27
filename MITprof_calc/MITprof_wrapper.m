@@ -11,14 +11,14 @@ function [varargout]=MITprof_wrapper(varargin);
 %  the result in vector form. This approach allows bootstrapping.
 %
 %       myop options:
-%          - opName='mean','std', or 'cycle'
-%          - opVars='T', 'S', or [], or a list {'T','S'}
+%          - op_name='mean','std', or 'cycle'
+%          - op_vars='prof_T', 'prof_S', or a list {'prof_T','prof_S'}
 %
 %  Example:
 %
 %       example_MITprof; global myprofmyop; disp(myprofmyop);
 %
-%       myop.op_name='cycle'; myop.op_tim=[0:7:365];
+%       myop.op_name='cycle'; myop.op_tim=[0:7:365]; %myop.op_dt=30;
 %       myop.op_vars={'prof_T','prof_Tclim'};
 %       myprof=myprofmyop;
 %
@@ -34,9 +34,15 @@ function [varargout]=MITprof_wrapper(varargin);
 if nargin<=1; 
     global myprofmyop;
     myprof=myprofmyop;
-    myop.op_name=myprofmyop.op_name;
-    myop.op_vars=myprofmyop.op_vars;
-    if isfield(myprofmyop,'op_tim'); myop.op_tim=myprofmyop.op_tim; end;
+    tmp1=fieldnames(myprofmyop);
+    for ii=1:length(tmp1);
+      tmp2=tmp1{ii};
+      tmp2=tmp2(1:min(3,length(tmp2)));
+      if strcmp(tmp2,'op_');
+        tmp2=tmp1{ii};
+        myop.(tmp2)=myprofmyop.(tmp2);
+      end;
+    end;
 end;
 
 if nargin==1;
@@ -56,6 +62,10 @@ if isempty(myprof)|isempty(myop);
     error('incorrect input specifications'); 
 end;
     
+if ischar(myop.op_vars); 
+    myop.op_vars={myop.op_vars}; 
+end;
+
 %%
 
 [myprof]=MITprof_subset(myprof,'list',myind);
@@ -70,9 +80,13 @@ if strcmp(myop.op_name,'mean');
 end;
 
 if strcmp(myop.op_name,'cycle');
-    tim=myprof.prof_date-datenum([2002 1 1]);
-    tim=mod(tim,365); dt=median(diff(myop.op_tim));
+    tim=myprof.prof_date-datenum([2002 1 1]); tim=mod(tim,365); 
     nt=length(myop.op_tim); nv=length(myop.op_vars);
+    if isfield(myop,'op_dt'); 
+      dt=myop.op_dt;
+    else;
+      dt=median(diff(myop.op_tim));
+    end;
     for vv=1:nv;
         tmpIn=getfield(myprof,myop.op_vars{vv});
         tmpOut=NaN*repmat(tmpIn(1,:),[nt 1]);
@@ -93,7 +107,7 @@ end;
 
 %%
 
-if nargin<=1;
+if nargin<=1&nargout==1;
     varargout{1}=varargout;
 end;
 
