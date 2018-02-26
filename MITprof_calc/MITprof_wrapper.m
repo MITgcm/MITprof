@@ -1,18 +1,19 @@
 function [varargout]=MITprof_wrapper(varargin);
 % MITPROF_WRAPPER  applies encoded operation to MITprof variables
 %                 
-%  [myout]=gcmfaces_phitheta(myprof,myop) applies operation specified 
+%  [myout]=MITprof_wrapper(myprof,myop) applies operation specified 
 %  by myop.op_name ('nanmean' by default; options listed below) to 
-%  myprof variables listed by suffix in myop.op_vars (all those of 
-%  length myprofmyop.np by default).
+%  myprof variables listed by suffix in myop.op_vars (all variables 
+%  of length myprofmyop.np by default).
 %
-%  [myout]=gcmfaces_phitheta(K) obtains myprofmyop from global variable, 
+%  [myout]=MITprof_wrapper(K) obtains myprofmyop from global variable, 
 %  subsets according to K (1:myprofmyop.np by default), and returns 
 %  the result in vector form. This approach allows bootstrapping.
 %
 %       myop options:
-%          - op_name='mean','std', or 'cycle'
+%          - op_name='mean','std', 'timeave', or 'cycle'
 %          - op_vars='prof_T', 'prof_S', or a list {'prof_T','prof_S'}
+%          - additional options can be specified depending on op_name
 %
 %  Example:
 %
@@ -72,12 +73,48 @@ end;
 
 %%
 
+if strcmp(myop.op_name,'std');
+    for vv=1:length(myop.op_vars);
+        tmp1=getfield(myprof,myop.op_vars{vv});
+        varargout{vv}=nanstd(tmp1,[],1);
+    end;
+end;
+
+%%
+
 if strcmp(myop.op_name,'mean');
     for vv=1:length(myop.op_vars);
         tmp1=getfield(myprof,myop.op_vars{vv});
         varargout{vv}=nanmean(tmp1,1);
     end;
 end;
+
+%%
+
+if strcmp(myop.op_name,'timeave');
+    nt=length(myop.op_tim0); nv=length(myop.op_vars);
+    if ~isfield(myop,'op_tim0')|~isfield(myop,'op_tim1');
+        error('missing op_tim0, op_tim1 specifications');
+        %notes: 
+        %(1) I should have defaults! 
+        %(2) use the op_tim, op_dt approach?
+    end;
+    for vv=1:nv;
+        tmpIn=getfield(myprof,myop.op_vars{vv});
+        tmpOut=NaN*repmat(tmpIn(1,:),[nt 1]);
+        for tt=1:nt;
+            ii=find(myprof.prof_date>=myop.op_tim0(tt)&myprof.prof_date<=myop.op_tim1(tt));
+            tmp1=nanmean(tmpIn(ii,:),1);
+            tmp2=sum(~isnan(tmpIn(ii,:)),1);
+            tmp1(~tmp2)=NaN; 
+            tmpOut(tt,:)=tmp1;
+        end;
+        varargout{vv}=tmpOut;
+    end;
+end;
+
+
+%%
 
 if strcmp(myop.op_name,'cycle');
     tim=myprof.prof_date-datenum([2002 1 1]); tim=mod(tim,365); 
