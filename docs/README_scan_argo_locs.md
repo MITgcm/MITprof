@@ -12,8 +12,9 @@ Here we scan, visualize, and save Argo profile locations in the Pacific.
 To this end, open a terminal window and execute:
 
 ``` 
-wget -r ftp://ftp.ifremer.fr/ifremer/argo/geo/
+wget -r ftp://ftp.ifremer.fr/ifremer/argo/geo/pacific_ocean/
 git clone https://github.com/gaelforget/MITprof
+git clone https://github.com/gaelforget/gcmfaces
 matlab -nodesktop -nosplash
 ```
 
@@ -26,6 +27,7 @@ Within `Matlab` or `Octave`, proceed as follows:
 
 ```
 p = genpath('MITprof/'); addpath(p);
+p = genpath('gcmfaces/'); addpath(p);
 dataset.dirIn='ftp.ifremer.fr/ifremer/argo/geo/pacific_ocean/';
 ```
 
