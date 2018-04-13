@@ -59,6 +59,7 @@ dataset.LONGITUDE=[];
 dataset.LATITUDE=[];
 dataset.PLATFORM_NUMBER='';
 dataset.JULD=[];
+
 for nf=1:length(dataset.fileInList);
   tmp1=profiles_read_argo(dataset,nf,0);
   if tmp1.nprofiles>0;
@@ -75,17 +76,23 @@ Note: if using `Octave` you may need to install `nectdf` (e.g., as explained in 
 ####5. Visualize Locations
 
 ```
-date0=datestr(datenum(1950,1,1,0,0,0)+min(dataset.JULD));
-date1=datestr(datenum(1950,1,1,0,0,0)+max(dataset.JULD));
+datefac=(2050-1950)/(datenum(2050,1,1)-datenum(1950,1,1));
+dataset.dateYea=1950+dataset.JULD*datefac;
+dataset.dateMin=datestr(datenum(1950,1,1,0,0,0)+min(dataset.JULD));
+dataset.dateMax=datestr(datenum(1950,1,1,0,0,0)+max(dataset.JULD));
+
 figure;
-plot(dataset.LONGITUDE,dataset.LATITUDE,'.');
-title(['float locations between ' date0(1:11) ' and ' date1(1:11)]);
+subplot(2,1,1); plot(dataset.LONGITUDE,dataset.LATITUDE,'.');
+d0=dataset.dateMin(1:11); d1=dataset.dateMax(1:11);
+title(['float locations between ' d0 ' and ' d1]);
+subplot(2,1,2); hist(dataset.dateYea); title('Profile Dates');
 ```
 
 ###5. Save Locations
 
 ```
 save('one_dataset.mat', '-struct', 'dataset');
+%datasetReloaded=load('dataset_locations.mat');
 ```
 
 ####6. Exit Matlab
