@@ -190,6 +190,7 @@ switch datasetname
         dataset.dirOut='MITprof-GLODAP-v2/';;
         if strcmp(subset,'pH~_T(p=0,T=25,S)'); subset='pHat025'; end;
         if strcmp(subset,'pH~_T(p,T,S)'); subset='pH'; end;
+        subset(find(subset=='-'))='';
         dataset.var_out={'depth','T','S',subset};
         dataset.fileOut=['GLODAPv2_' subset '_MITprof.nc'];
         dataset.depthrange=[0 6000];
