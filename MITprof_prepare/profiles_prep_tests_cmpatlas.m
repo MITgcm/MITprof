@@ -27,6 +27,7 @@ end;
 
 %%set parameters according to MITprofCur specifications:
 
+do_T=isfield(MITprofCur,'prof_T');
 do_S=isfield(MITprofCur,'prof_S');
 
 max_cost=50;
@@ -63,33 +64,36 @@ end;
 warning('off','MATLAB:interp1:NaNinY');
 
 for ff=1:length(atlas.T);
-    if strcmp(method,'bindata');
-      t_equi=atlas.T{ff}(ind2prof);%collocate
-      t_equi=interp1(-mygrid.RC',t_equi',MITprofCur.prof_depth)';%vert. interp.
-    elseif strcmp(method,'interp');
-      fldIn.name='prof_tmp'; fldIn.tim='monclim';
-      fldIn.fld=convert2array(atlas.T{ff});
-      MITprofCur=MITprof_resample(MITprofCur,fldIn);
-      t_equi=MITprofCur.prof_tmp;
-      MITprofCur=rmfield(MITprofCur,'prof_tmp');
-    else;
-      error('unknown dataset.method')
-    end;
-    if ff==1;
-        MITprofCur.prof_Testim=t_equi;
-        t_cost=NaN*t_equi;
-    end;
-    tmp_cost=MITprofCur.prof_Tweight.*((MITprofCur.prof_T-t_equi).^2);
-    t_cost( (isnan(t_cost)&~isnan(tmp_cost)) | (tmp_cost<t_cost) )=...
-        tmp_cost( (isnan(t_cost)&~isnan(tmp_cost)) | (tmp_cost<t_cost) );
 
-    if unbias_T;
-      t_bias=MITprofCur.prof_T-t_equi;
-      t_bias=nanmedian(t_bias,1);
-      t_bias=ones(MITprofCur.np,1)*t_bias;
-      tmp_cost=MITprofCur.prof_Tweight.*((MITprofCur.prof_T-t_equi-t_bias).^2);
+    if do_T;     
+      if strcmp(method,'bindata');
+        t_equi=atlas.T{ff}(ind2prof);%collocate
+        t_equi=interp1(-mygrid.RC',t_equi',MITprofCur.prof_depth)';%vert. interp.
+      elseif strcmp(method,'interp');
+        fldIn.name='prof_tmp'; fldIn.tim='monclim';
+        fldIn.fld=convert2array(atlas.T{ff});
+          MITprofCur=MITprof_resample(MITprofCur,fldIn);
+        t_equi=MITprofCur.prof_tmp;
+        MITprofCur=rmfield(MITprofCur,'prof_tmp');
+      else;
+        error('unknown dataset.method')
+      end;
+      if ff==1;
+          MITprofCur.prof_Testim=t_equi;
+          t_cost=NaN*t_equi;
+      end;
+      tmp_cost=MITprofCur.prof_Tweight.*((MITprofCur.prof_T-t_equi).^2);
       t_cost( (isnan(t_cost)&~isnan(tmp_cost)) | (tmp_cost<t_cost) )=...
           tmp_cost( (isnan(t_cost)&~isnan(tmp_cost)) | (tmp_cost<t_cost) );
+
+      if unbias_T;
+        t_bias=MITprofCur.prof_T-t_equi;
+        t_bias=nanmedian(t_bias,1);
+        t_bias=ones(MITprofCur.np,1)*t_bias;
+        tmp_cost=MITprofCur.prof_Tweight.*((MITprofCur.prof_T-t_equi-t_bias).^2);
+        t_cost( (isnan(t_cost)&~isnan(tmp_cost)) | (tmp_cost<t_cost) )=...
+            tmp_cost( (isnan(t_cost)&~isnan(tmp_cost)) | (tmp_cost<t_cost) );
+      end;
     end;
 
     if ~strcmp(dataset.coord,'depth');
@@ -136,16 +140,20 @@ warning('on','MATLAB:interp1:NaNinY');
 
 %%test for cost>max_cost and update flag and weight accordingly:
 
-ii=find( (MITprofCur.prof_T~=MITprofCur.fillval)&(t_cost>max_cost) );
-MITprofCur.prof_Tflag(ii)=10*MITprofCur.prof_Tflag(ii)+5;
+if do_T;
+    ii=find( (MITprofCur.prof_T~=MITprofCur.fillval)&(t_cost>max_cost) );
+    MITprofCur.prof_Tflag(ii)=10*MITprofCur.prof_Tflag(ii)+5;
+end;
 if do_S;
     ii=find( (MITprofCur.prof_S~=MITprofCur.fillval)&(s_cost>max_cost) );
     MITprofCur.prof_Sflag(ii)=10*MITprofCur.prof_Sflag(ii)+5;
 end;
 
-MITprofCur.prof_Tweight(isnan(MITprofCur.prof_T)|...
+if do_T;
+    MITprofCur.prof_Tweight(isnan(MITprofCur.prof_T)|...
            MITprofCur.prof_T==-9999|MITprofCur.prof_Tflag>0)=0;
-MITprofCur.prof_Testim(isnan(MITprofCur.prof_Testim))=-9999;
+    MITprofCur.prof_Testim(isnan(MITprofCur.prof_Testim))=-9999;
+end;
 if do_S;
     MITprofCur.prof_Sweight(isnan(MITprofCur.prof_S)|...
                MITprofCur.prof_S==-9999|MITprofCur.prof_Sflag>0)=0;

@@ -25,13 +25,15 @@ for ii=2:length(dataset.var_out);
 end;
 
 %test for "absurd" salinity values :
-if length(dataset.var_out)>2;
-    s_std=getfield(profileCur,[dataset.var_out{3} '_std']);
-    s_test=getfield(profileCur,[dataset.var_out{3} '_test']);
+%this test needs to be revisited
+ii=find(strcmp(dataset.var_out,'S'));
+if ~isempty(ii);
+    s_std=getfield(profileCur,[dataset.var_out{ii} '_std']);
+    s_test=getfield(profileCur,[dataset.var_out{ii} '_test']);
     s_test(find( (s_std>42)&(s_std~=dataset.fillval) ))=2;
     s_test(find( (s_std<15)&(s_std~=dataset.fillval) ))=2;
-    profileCur=setfield(profileCur,[dataset.var_out{3} '_std'],s_std);
-    profileCur=setfield(profileCur,[dataset.var_out{3} '_test'],s_test);
+    profileCur=setfield(profileCur,[dataset.var_out{ii} '_std'],s_std);
+    profileCur=setfield(profileCur,[dataset.var_out{ii} '_test'],s_test);
 end;
 
 %bad pressure flag:

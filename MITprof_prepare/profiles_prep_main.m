@@ -17,13 +17,12 @@ function profiles_prep_main(dataset)
 
 MITprof_global;
 global mytri MYBASININDEX atlas sigma
-global useNativeMatlabNetcdf
 
 if isempty(myenv.verbose), myenv.verbose=0; end
 if isempty(mygrid) | isempty(mytri) | isempty(MYBASININDEX) | isempty(atlas) | isempty(sigma),
     profiles_prep_load_fields;
 end
-if isempty(useNativeMatlabNetcdf), useNativeMatlabNetcdf = ~isempty(which('netcdf.open')); end
+
 if ~isfield(dataset,'skipSTEP1'); dataset.skipSTEP1=0; end;
 if dataset.skipSTEP1&~isfield(dataset,'fileIn'); 
   error('data.set.fileIn needs to be defined when using skipSTEP1');
