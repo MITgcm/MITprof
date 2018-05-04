@@ -20,12 +20,10 @@ function []=profiles_prep_revise(dir_in,file_in,dir_out,file_out);
 % set global variables
 gcmfaces_global; 
 global mytri MYBASININDEX atlas sigma;
-global useNativeMatlabNetcdf;
 
 if isempty(mygrid) | isempty(mytri) | isempty(MYBASININDEX) | isempty(atlas) | isempty(sigma),
   profiles_prep_load_fields;
 end;
-if isempty(useNativeMatlabNetcdf), useNativeMatlabNetcdf = ~isempty(which('netcdf.open')); end
 
 
 %load old data set:

@@ -180,7 +180,24 @@ switch datasetname
         dataset.inclS=1;
         
         %=================================================================================
-        
+
+    case 'odvnc',
+
+        %GLODAPv2 bottle data exported as nectdf using ODV
+        dataset.dirIn='ODV-GLODAP-v2/';
+        dataset.fileInList=dir([dataset.dirIn 'data_from_GLODAPv2_bottle.nc']);
+        dataset.var_in={'DEPTH','TEMPERATURE','SALNTY',subset};
+        dataset.dirOut='MITprof-GLODAP-v2/';;
+        if strcmp(subset,'pH~_T(p=0,T=25,S)'); subset='pHat025'; end;
+        if strcmp(subset,'pH~_T(p,T,S)'); subset='pH'; end;
+        subset(find(subset=='-'))='';
+        dataset.var_out={'depth','T','S',subset};
+        dataset.fileOut=['GLODAPv2_' subset '_MITprof.nc'];
+        dataset.depthrange=[0 6000];
+        dataset.inclT=1;
+        dataset.inclS=1;
+        dataset.inclZ=1;
+                
     otherwise
         error('un-supported data set');
         
@@ -227,7 +244,7 @@ if myenv.verbose;
     fprintf(['\n\n generating file : ' dataset.dirOut dataset.fileOut ' \n']);
     fprintf(['\n depth range : ' num2str(dataset.depthrange) ' \n']);
     fprintf([' compute T pot from T in-situ : ' num2str(dataset.TPOTfromTINSITU) ' \n']);
-    fprintf([' compute Z from P : ' num2str(dataset.inclZ) ' \n']);
+    fprintf([' compute Z from P : ' num2str(~dataset.inclZ) ' \n']);
     fprintf([' include T : ' num2str(dataset.inclT) ' \n']);
     fprintf([' include S : ' num2str(dataset.inclS) ' \n\n']);
 end;
