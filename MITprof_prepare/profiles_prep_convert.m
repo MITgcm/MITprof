@@ -23,7 +23,7 @@ if dataset.inclZ==0;
 end
 
 %convert T in situ to T potential (if necessary)
-if dataset.TPOTfromTINSITU==1;
+if dataset.inclT&&dataset.TPOTfromTINSITU==1;
         tmpP=0.981*1.027*getfield(profileCur,dataset.var_out{1}); 
         tmpT=getfield(profileCur,dataset.var_out{2});
         tmpS=35*ones(size(tmpT));

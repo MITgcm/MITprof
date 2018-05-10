@@ -15,8 +15,7 @@ function profiles_prep_main(dataset)
 %       be made.
 %
 
-MITprof_global;
-global mytri MYBASININDEX atlas sigma
+MITprof_global; global mytri MYBASININDEX atlas sigma;
 
 if isempty(myenv.verbose), myenv.verbose=0; end
 if isempty(mygrid) | isempty(mytri) | isempty(MYBASININDEX) | isempty(atlas) | isempty(sigma),
@@ -25,7 +24,7 @@ end
 
 if ~isfield(dataset,'skipSTEP1'); dataset.skipSTEP1=0; end;
 if dataset.skipSTEP1&~isfield(dataset,'fileIn'); 
-  error('data.set.fileIn needs to be defined when using skipSTEP1');
+  error('dataset.fileIn needs to be defined when using skipSTEP1');
 end;
 
 if ~dataset.skipSTEP1;
@@ -56,18 +55,18 @@ for nf=1:nfiles % FILE LOOP
     
     
     % load file information:
-    eval(['dataset=profiles_read_' dataset.name '(dataset,nf,0);']);
+    eval(['dataset=' dataset.readfunction '(dataset,nf,0);']);
     
     % extract and process individual profiles
     nprofiles=dataset.nprofiles;
     for np=1:nprofiles;
         
-        if myenv.verbose & mod(np,100)==0,
+        if myenv.verbose & mod(np,dataset.buffer_size/10)==0,
             fprintf('\t : %04d --> %04d\n',np,nprofiles);
         end
         
         % read 1 profile:
-        eval(['profileCur=profiles_read_' dataset.name '(dataset,nf,np);']);
+        eval(['profileCur=' dataset.readfunction '(dataset,nf,np);']);
         if isempty(profileCur), continue, end
         
         %conversions of p->z, Tinsitu->Tpot, and 0-360 lon to -180+180 lon:

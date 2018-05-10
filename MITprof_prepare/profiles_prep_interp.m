@@ -2,6 +2,8 @@ function [profileCur]=profiles_prep_interp(dataset,profileCur);
 %[profileCur]=profiles_prep_interp(dataset,profileCur);
 %	interpolate profileCur to dataset.z_std standard levels
 
+MITprof_global;
+
 for ii=2:length(dataset.var_out);
     z_std=dataset.z_std;
     t_std=NaN*z_std; e_std=NaN*t_std;
@@ -29,13 +31,16 @@ for ii=2:length(dataset.var_out);
             t_std = interp1(z_in,t_in,z_std);
             if ~isempty(e); e_std = interp1(z_in,e_in,z_std); end;
         end
-    elseif ~dataset.doInterp&length(find(~isnan(z.*t)))>1;
+    elseif dataset.doInterp&length(find(~isnan(z.*t)))<=1;
+        if myenv.verbose>1;
+            warning(sprintf(['skipping vertical interpolation (less \n' ...
+                             '         than 2 data points are available)']));
+        end;
+    elseif ~dataset.doInterp;
         tmp1=z_std'*(1+0*z)-(1+0*z_std)'*z;
         [II,JJ]=find(tmp1==0);
-        if length(II)>1;
-            t_std(II)=t(JJ);
-            if ~isempty(e); e_std(II)=e(JJ); end;
-        end;
+        t_std(II)=t(JJ);
+        if ~isempty(e); e_std(II)=e(JJ); end;
     end%if ~isempty(t);
     t_std(find(isnan(t_std)))=dataset.fillval;
     e_std(find(isnan(e_std)))=dataset.fillval;

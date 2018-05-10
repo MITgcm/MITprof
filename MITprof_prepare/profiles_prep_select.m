@@ -1,37 +1,40 @@
 function [dataset]=profiles_prep_select(datasetname,subset,varargin);
 %[dataset]=profiles_prep_select(datasetname,subset,'PropertyName',PropertyValue);
-%       Specifies 'dataset' structure used as argument of
-%           profiles_prep_main.m to process hydrographic data.
-%           Contains a description of the data to process and processing options.
+%  Specifies 'dataset' structure that will be used as argument of
+%    profiles_prep_main.m to process hydrographic data. The 'dataset'
+%    contains various parameters of the data to process and processing 
+%    options (see annotations of the default values below).
 %
-%  datasetname: type of input data. specify which script will be used in
-%   the folder profiles_IO_external to read the data:
-%       ['profiles_read_' datasetname '.m']
-%       Can be 'argo','wod05','seals' or 'odv'
+%  datasetname: type of input data. This will select a set of parameters to
+%    override default values and select the I/O routine (dataset.readfunction).
+%    Valid choices for datasetname include 'argo' (profiles_read_argo.m) and 
+%    'GLODAPv2' (profiles_read_odvnc.m).
 %
-%  subset: name of the dataset used in the output name.
+%  subset: choice of a subset within the chosen data set
 %
-%typical calling sequence :
-%
-%MITprof_global;
-%YY=[1992:2016];
-%BB={'atlantic','indian','pacific'};
-%for bb=1:3;
-%bas=BB{bb};
-%for yy=YY; 
-%  dataset=profiles_prep_select('argo',{bas,yy});
-%  profiles_prep_main(dataset);
-%end;
-%end;
+%  Example calling sequence :
+%    MITprof_global;
+%    YY=[1992:2016];
+%    BB={'atlantic','indian','pacific'};
+%    for bb=1:3;
+%      bas=BB{bb};
+%      for yy=YY; 
+%        dataset=profiles_prep_select('argo',{bas,yy});
+%        profiles_prep_main(dataset);
+%      end;
+%    end;
 
 gcmfaces_global;
 
+if isempty(whos('datasetname')); error('Missing datasetname specification'); end;
+if isempty(whos('subset')); subset=''; end;
 
 % vertical levels
 Z_STD=[5:10:185 200:20:500 550:50:1000 1100:100:6000];
 
 %initialize empty data set description:
 dataset.name=datasetname;
+dataset.readfunction='profiles_read_argo';
 dataset.subset=subset;
 dataset.dirIn='';
 dataset.fileInList={};
@@ -47,6 +50,7 @@ dataset.inclV=0;
 dataset.inclPTR=0;
 dataset.inclSSH=0;
 dataset.fillval=-9999.;
+dataset.buffer_size=10000;
 dataset.TPOTfromTINSITU=1;%1 means that only in situ T is provided, which we will convert to pot T
 dataset.coord='depth';%depth as a coordinate
 dataset.doInterp=1;
@@ -55,8 +59,8 @@ dataset.var_out={'depth','T','S'};%depth,T,S need to be placed first
 dataset.outputMore=0;
 dataset.method='interp';
 
-if myenv.verbose==2;
-    fprintf(['by default, we assume that \n'...
+if myenv.verbose>1;
+    fprintf(['By default, we assume that \n'...
         '   the data vertical coordinate is P \n' ...
         '   temperature data is in situ (rather than potential) \n' ...
         '   salinity data exists\n'...
@@ -77,6 +81,7 @@ switch datasetname
 
         %Argo profiles:
         %--------------
+        dataset.readfunction='profiles_read_argo';
         dataset.dirIn=[myenv.MITprof_dir 'sample_files/argo_sample/'];
         dataset.fileInList=dir([dataset.dirIn '*.nc']);
         dataset.dirOut=[myenv.MITprof_dir 'sample_files/argo_sample/processed/'];
@@ -92,6 +97,7 @@ switch datasetname
         %Argo profiles:
         %--------------
 
+        dataset.readfunction='profiles_read_argo';
         dir0=[pwd filesep];
         dataset.dirIn=[dir0 'ftp.ifremer.fr/ifremer/argo/geo/' subset{1} '_ocean/'];
         %year range
@@ -129,7 +135,8 @@ switch datasetname
         
         if strcmp(wod_decade,'00'); wod_decade2=['20' wod_decade 's'];
         else; wod_decade2=['19' wod_decade 's']; end;
-        
+
+        dataset.readfunction='profiles_read_wod05';        
         dataset.dirIn=[myenv.MITprof_dir 'sample_files/wod05_sample/'];
         dataset.fileInList=dir([dataset.dirIn '*' wod_instr_code '*']);
         dataset.dirOut=[myenv.MITprof_dir 'sample_files/wod05_sample/processed/'];
@@ -154,22 +161,10 @@ switch datasetname
         
         %=================================================================================
         
-    case 'seals',
-        
-        % seal data in ARGO format
-        dataset.dirIn=[myenv.MITprof_dir 'sample_files/seals_sample/'];
-        dataset.fileInList=dir([dataset.dirIn '*' subset '*.nc']);
-        dataset.dirOut=[myenv.MITprof_dir 'sample_files/seals_sample/processed/'];
-        dataset.fileOut=[datasetname '_' subset '_MITprof'];
-        dataset.depthrange=[0 2000];
-        dataset.inclT=1;
-        dataset.inclS=1;
-        
-        %=================================================================================
-        
     case 'odv',
         
-        % seal data in odv format
+        % seal data in odv spreadsheet format
+        dataset.readfunction='profiles_read_odv';
         dataset.dirIn=[myenv.MITprof_dir 'sample_files/odv_sample/'];
         dataset.fileInList=dir([dataset.dirIn '*.txt']);
         dataset.dirOut=[myenv.MITprof_dir 'sample_files/odv_sample/processed/'];
@@ -178,12 +173,13 @@ switch datasetname
         dataset.inclZ=1;
         dataset.inclT=1;
         dataset.inclS=1;
-        
+
         %=================================================================================
 
-    case 'odvnc',
+    case 'GLODAPv2',
 
         %GLODAPv2 bottle data exported as nectdf using ODV
+        dataset.readfunction='profiles_read_odvnc';
         dataset.dirIn='ODV-GLODAP-v2/';
         dataset.fileInList=dir([dataset.dirIn 'data_from_GLODAPv2_bottle.nc']);
         dataset.var_in={'DEPTH','TEMPERATURE','SALNTY',subset};
@@ -197,6 +193,24 @@ switch datasetname
         dataset.inclT=1;
         dataset.inclS=1;
         dataset.inclZ=1;
+        
+        %=================================================================================
+
+    case 'SOCATv5',
+
+        %SOCATv5 bottle data exported as nectdf using ODV
+        dataset.readfunction='profiles_read_odvnc';
+        dataset.dirIn='ODV-SOCAT-v5/';
+        dataset.fileInList=dir([dataset.dirIn 'data_from_SOCAT-v5' subset '.nc']);
+        dataset.dirOut='MITprof-SOCAT-v5/';;
+        dataset.fileOut=['SOCATv5_' subset '_MITprof.nc'];
+        dataset.var_in={'Sample Depth','fCO2 (recomputed)'};
+        dataset.var_out={'depth','fCO2'};
+        dataset.depthrange=[0 10];
+        dataset.inclZ=1;
+        dataset.doInterp=0;
+
+        %=================================================================================
                 
     otherwise
         error('un-supported data set');
@@ -224,9 +238,14 @@ if isempty(dataset.z_std);
 end;
 %set z_top, z_bot:
 z_std=dataset.z_std;
-tmp1=(z_std(2:end)+z_std(1:end-1))/2;
-dataset.z_top=[z_std(1)-(z_std(2)-z_std(1))/2 tmp1];
-dataset.z_bot=[tmp1 z_std(end)+(z_std(end)-z_std(end-1))/2];
+if length(z_std)>1;
+  tmp1=(z_std(2:end)+z_std(1:end-1))/2;
+  dataset.z_top=[z_std(1)-(z_std(2)-z_std(1))/2 tmp1];
+  dataset.z_bot=[tmp1 z_std(end)+(z_std(end)-z_std(end-1))/2];
+else;
+  dataset.z_top=0.9*z_std;
+  dataset.z_bot=1.1*z_std;
+end;
 
 % determine the output file name, and try to delete it
 [pathstr, name, ext] = fileparts([dataset.dirOut dataset.fileOut]);
@@ -241,12 +260,9 @@ end
 tmp1=dir(dataset.dirOut); if isempty(tmp1); eval(['mkdir ' dataset.dirOut ]); end;
 
 if myenv.verbose;
-    fprintf(['\n\n generating file : ' dataset.dirOut dataset.fileOut ' \n']);
-    fprintf(['\n depth range : ' num2str(dataset.depthrange) ' \n']);
-    fprintf([' compute T pot from T in-situ : ' num2str(dataset.TPOTfromTINSITU) ' \n']);
-    fprintf([' compute Z from P : ' num2str(~dataset.inclZ) ' \n']);
-    fprintf([' include T : ' num2str(dataset.inclT) ' \n']);
-    fprintf([' include S : ' num2str(dataset.inclS) ' \n\n']);
+    fprintf(['\n\n Will generate file named: \n   ' dataset.dirOut dataset.fileOut ' \n']);
+    fprintf(['\n Using the following parameters: \n']);
+    disp(dataset);
 end;
 
 

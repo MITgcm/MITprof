@@ -20,7 +20,7 @@ fileOut=dataset.fileOut;
 fill_value_output=dataset.fillval;
 dmod=dataset.z_std;
 
-buffer_size=10000;
+buffer_size=dataset.buffer_size;
 nb_lev=length(dmod);
 nb_char=30;
 
